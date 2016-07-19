@@ -1,17 +1,16 @@
 <?php
 
-namespace App\Http\Controllers\Api\Seller\V1;
+namespace App\Http\Controllers\Api\V1;
 
 use Mail;
-use App\Models\Seller;
+use App\Models\User;
 
-use App\Transformers\Api\V1\Seller\AuthenticateTransformer;
-use App\Transformers\Api\V1\Seller\SellerTransformer;
 
-use App\Http\Requests\Api\V1\Seller\SignUpRequest;
-use App\Http\Requests\Api\V1\Seller\AuthenticationRequest;
-use App\Http\Requests\Api\V1\Seller\ForgotPasswordRequest;
-use App\Http\Requests\Api\V1\Seller\ActiveAcountRequest;
+
+use App\Http\Requests\Api\V1\SignUpRequest;
+use App\Http\Requests\Api\V1\AuthenticationRequest;
+use App\Http\Requests\Api\V1\ForgotPasswordRequest;
+use App\Http\Requests\Api\V1\ActiveAcountRequest;
 
 use Authorizer, Auth;
 
@@ -20,42 +19,44 @@ use League\Fractal;
 class AuthController extends BaseController
 {
 	/**
-	 * Seller model instance
-	 * @var App\Models\Seller
+	 * user model instance
+	 * @var App\Models\User
 	 */
-	protected $sellerModel;
+	protected $userModel;
 
-	public function __construct(Seller $seller)
+	public function __construct(User $user)
 	{
+		
 		parent::__construct();
-		$this->sellerModel = $seller;
+		$this->userModel = $user;
 	}
 
 	/**
-	 * Checks seller credentials and provide them with an authorization token for subsequent requests
-	 * @param  \App\Http\Requests\Api\V1\Seller\AuthenticationRequest $request
+	 * Checks user credentials and provide them with an authorization token for subsequent requests
+	 * @param  \App\Http\Requests\Api\V1\AuthenticationRequest $request
 	 * @return json
 	 */
 	public function authenticate(AuthenticationRequest $request)
 	{
 
 		//request for oauth authorization
-		$authorizer = Authorizer::issueAccessToken();
-		$seller     = $this->sellerModel->getSellerData($request->input('email'));
+		$authorizer            = Authorizer::issueAccessToken();
+		$user                  = $this->userModel->whereEmail($this->inputs['email'])->whereStatus(1)->first();
 		
-		//add seller data 
-		$authorizer['id']    = $seller['id'];
-		$authorizer['email'] = $seller['email'];
-		$authorizer['name']  = $seller['name'];
+		//add user data 
+		$authorizer['id']      = $user->id;
+		$authorizer['email']   = $user->email;
+		$authorizer['name']    = $user->name;
+		$authorizer['role_id'] = $user->role_id;
 
-		// We have an access token. Now we need to return that.
-        $resource = new \App\Fractal\Item($authorizer, new AuthenticateTransformer);
-        
-        return response()->json($resource->getSuccess(), 200);
+		return response()->json([
+			'status' => 'success',
+			'data'   => $authorizer
+		], 200);
     }
 
 	/**
-	 * Sends a temporary password to seller
+	 * Sends a temporary password to user
 	 * @param  ForgotPasswordRequest $request
 	 * @return json
 	 */
@@ -63,39 +64,41 @@ class AuthController extends BaseController
 	{
 		\DB::beginTransaction();
 
-		$email  = $request->email;
-		$seller = $this->sellerModel->whereEmail($email)->first();
+		$email = $request->email;
+		$user  = $this->userModel->whereEmail($email)->first();
 
-		$this->sendTemporaryPassword($seller);
+		$this->sendTemporaryPassword($user);
 
 		\DB::commit();
 	
-		// We have an API key. Now we need to return that.
-        $resource = new \App\Fractal\Item($seller, new SellerTransformer);
-        return response()->json($resource->getSuccess(), 200);
+		$data = [];
+        return response()->json([
+			'status' => 'success',
+			'data'   => $data], 
+		200);
 	}
 
 	/**
 	 * Generates a temporary password and send and email
-	 * @param  App\Models\Seller $seller
+	 * @param  App\Models\user $user
 	 * @return boolean
 	 */
-	public function sendTemporaryPassword($seller)
+	public function sendTemporaryPassword($user)
 	{
 		$chars    = "abcdefghjkmnpqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789!@#&";
 		$password = substr( str_shuffle( $chars ), 0, 6 );
 
-		$seller->temporary_password = bcrypt($password);
-		$seller->save();
-		$seller->temporary_password = $password;
-    	return Mail::send('auth.emails.api.v1.seller.temporary_password', ['seller' => $seller], function ($m) use ($seller) {
-    		$m->to($seller->email, $seller->name)->subject('Test Api Password');
+		$user->temporary_password = bcrypt($password);
+		$user->save();
+		$user->temporary_password = $password;
+    	return Mail::send('auth.emails.api.v1.temporary_password', ['user' => $user], function ($m) use ($user) {
+    		$m->to($user->email, $user->name)->subject('Test Api Password');
     	});
 	}
 
 	/**
-	 * Signup a new seller
-	 * @param  \App\Http\Requests\Api\V1\Seller\SignUpRequest $request
+	 * Signup a new user
+	 * @param  \App\Http\Requests\Api\V1\SignUpRequest $request
 	 * @return json
 	 */
 	public function signup(SignUpRequest $request)
@@ -105,69 +108,67 @@ class AuthController extends BaseController
 		$request_data = [
 			'email'    => trim($request->email),
 			'password' => bcrypt(trim($request->password)),
-			'phone_no' => trim($request->phone_no),
 			'name'     => trim($request->get('name')),
-			'gender'   => $request->get('gender'),
 		];
 		
-		$seller = $this->sellerModel->create($request_data);
-		//store seller business types
-		$seller->businesses()->attach($request->get('business'), ["business_order" => 1, 'created_at' => \Carbon\Carbon::now()->toDateTimeString(),
-            'updated_at' => \Carbon\Carbon::now()->toDateTimeString()]);
+		$user = $this->userModel->create($request_data);
 		
-		$this->sendActivationCode($seller);
+		//$this->sendActivationCode($user);
 
 		\DB::commit();
 
 		// We have an API key. Now we need to return that.
-        $resource = new \App\Fractal\Item($seller, new SellerTransformer);
-        return response()->json($resource->getSuccess(), 200);
+        $data = [];
+        return response()->json([
+			'status' => 'success',
+			'data'   => $data
+		], 200);
 	}
 
 	/**
-	 * Create and send activation code to newly registered seller
-	 * @param  \App\Models\Seller $seller
+	 * Create and send activation code to newly registered user
+	 * @param  \App\Models\user $user
 	 * @return boolean
 	 */
-	private function sendActivationCode($seller)
+	private function sendActivationCode($user)
 	{
 
 		$confirmation_code         = mt_rand(100000, 999999);
-		$seller->confirmation_code = $confirmation_code;
-		$seller->save();
+		$user->confirmation_code   = $confirmation_code;
+		$user->save();
 
 		// Send an email about this
-		return Mail::send('auth.emails.api.v1.seller.activation', ['seller' => $seller], function ($m) use ($seller) {
-			$m->to($seller->email, $seller->name)->subject('app activation code');
+		return Mail::send('auth.emails.api.v1.activation', ['user' => $user], function ($m) use ($user) {
+			$m->to($user->email, $user->name)->subject('app activation code');
 		});
 	}
 
 	/**
-	 * Activate seller with confirmation code
-	 * @param  int $confirmation_code [Confirmation code which seller got in email]
+	 * Activate user with confirmation code
+	 * @param  int $confirmation_code [Confirmation code which user got in email]
 	 * @return json
 	 */
 	public function activate(ActiveAcountRequest $request)
 	{
 		
-		$seller =  $this->sellerModel->getSellerConfirmationData($request->input('email'), $request->input('confirmation_code'));
+		$user =  $this->userModel->getuserConfirmationData($request->input('email'), $request->input('confirmation_code'));
 		
-		$seller->status            = 1;
-		$seller->confirmation_code = null;
-		$seller->save();
+		$user->status            = 1;
+		$user->confirmation_code = null;
+		$user->save();
 
 		//request for oauth authorization
 		$authorizer = Authorizer::issueAccessToken();
-		$seller     = $this->sellerModel->getSellerData($request->input('email'));
+		$user       = $this->userModel->getuserData($request->input('email'));
 		
-		//add seller data 
-		$authorizer['id']    = $seller->id;
-		$authorizer['email'] = $seller->email;
-		$authorizer['name']  = $seller->name;
-
-		// We have an access token. Now we need to return that.
-        $resource = new \App\Fractal\Item($authorizer, new AuthenticateTransformer);
-        
-        return response()->json($resource->getSuccess(), 200);
+		//add user data 
+		$authorizer['id']    = $user->id;
+		$authorizer['email'] = $user->email;
+		$authorizer['name']  = $user->name;
+		
+		return response()->json([
+			'status' => 'success',
+			'data'   => $authorizer
+		], 200);
 	}
 }

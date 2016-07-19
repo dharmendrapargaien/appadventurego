@@ -38,15 +38,14 @@ desired effect
 
     <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">
-
-        @include('layouts.partials.contentheader')
-
+        
         <!-- Main content -->
         <section class="content">
             <!-- Your Page Content Here -->
             @yield('main-content')
         </section><!-- /.content -->
     </div><!-- /.content-wrapper -->
+    
     @include('layouts.partials.footer')
 
 </div><!-- ./wrapper -->
