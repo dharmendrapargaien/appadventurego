@@ -3,9 +3,6 @@
 namespace App\Http\Controllers\Api\V1;
 
 use Mail;
-use App\Models\User;
-
-
 
 use App\Http\Requests\Api\V1\SignUpRequest;
 use App\Http\Requests\Api\V1\AuthenticationRequest;
@@ -18,17 +15,10 @@ use League\Fractal;
 
 class AuthController extends BaseController
 {
-	/**
-	 * user model instance
-	 * @var App\Models\User
-	 */
-	protected $userModel;
-
-	public function __construct(User $user)
+	
+	public function __construct()
 	{
-		
 		parent::__construct();
-		$this->userModel = $user;
 	}
 
 	/**
@@ -38,7 +28,6 @@ class AuthController extends BaseController
 	 */
 	public function authenticate(AuthenticationRequest $request)
 	{
-
 		//request for oauth authorization
 		$authorizer            = Authorizer::issueAccessToken();
 		$user                  = $this->userModel->whereEmail($this->inputs['email'])->whereStatus(1)->first();
