@@ -3,7 +3,7 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
 
-class CreateMarkerVisitsTable extends Migration
+class CreateMarkerTypesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -12,17 +12,15 @@ class CreateMarkerVisitsTable extends Migration
      */
     public function up()
     {
-        Schema::create('marker_visits', function (Blueprint $table) {
-            $table->increments('id');
-
-            $table->integer('user_id')->unsigned();
-            $table->foreign('user_id')->references('id')->on('users');
-
-            $table->integer('marker_id')->unsigned();
-            $table->foreign('marker_id')->references('id')->on('markers');
-
-            $table->boolean('status')->default(1);
+        Schema::create('marker_types', function (Blueprint $table) {
             
+            $table->increments('id');
+            $table->string('name', 100);
+            $table->string('description', 200);
+            $table->integer('marker_points')->default(0);
+            $table->integer('marker_stars')->default(0);
+            $table->boolean('marker_for')->default(1); //1 = other, 0 = admin
+            $table->boolean('status')->default(1);
             $table->timestamps();
         });
     }
@@ -34,6 +32,6 @@ class CreateMarkerVisitsTable extends Migration
      */
     public function down()
     {
-        Schema::drop('marker_visits');
+        Schema::drop('marker_types');
     }
 }
