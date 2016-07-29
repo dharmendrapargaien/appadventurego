@@ -26,7 +26,20 @@ class MarkerController extends BaseController
      */
     public function index()
     {
-        //
+        $markers = Models\Marker::whereStatus(1)->orderBy('created_at', 'desc')->get();
+        
+        if ($markers->count() == 0) {
+
+            return response()->json([
+                'status'  => 'fail',
+                'message' => 'Data not found'
+            ], 500);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'data'   => $markers
+        ], 200);
     }
 
     /**
@@ -133,7 +146,7 @@ class MarkerController extends BaseController
     public function markerTypes($id)
     {
 
-        $marker_types = Models\MarkerType::select('type_slug', 'name', 'description','marker_points', 'marker_stars')->where('marker_for' , '=' , 12)->whereStatus(1)->orderBy('name')->get();
+        $marker_types = Models\MarkerType::select('type_slug', 'name', 'description','marker_points', 'marker_stars')->where('marker_for' , '!=' , 0)->whereStatus(1)->orderBy('name')->get();
         
         if ($marker_types->count() == 0) {
 
