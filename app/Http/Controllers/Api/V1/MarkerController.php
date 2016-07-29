@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
+use App\Http\Requests\Api\V1\CreateMarkerRequest;
+
 use App\Models;
 
 class MarkerController extends BaseController
@@ -43,9 +45,38 @@ class MarkerController extends BaseController
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(CreateMarkerRequest $request)
     {
-        //
+
+        \DB::beginTransaction();
+
+        //create new user
+         $marker_data = [
+            'user_id'        => $request->user_id,
+            'marker_type_id' => Models\MarkerType::select('id')->whereTypeSlug($request->marker_type)->first()['id'],
+            'name'           => $request->name,
+            'description'    => $request->description,
+            'lat'            => $request->lat,
+            'long'           => $request->long,
+            'marker_points'  => $request->marker_points,
+            'marker_stars'   => $request->marker_stars,
+        ];
+
+        //if marker type is event then we need data and time
+        if($request->has('marker_type') && $request->get('marker_type') == 'event') {
+            
+            $marker_data['marker_date']    = $request->marker_date;
+            $marker_data['marker_time']    = $request->marker_time;    
+        }
+        
+        $marker = Models\Marker::create($marker_data);
+
+        \DB::commit();
+        
+        return response()->json([
+            'status' => 'success',
+            'data'   => $marker
+        ], 200);
     }
 
     /**
@@ -101,20 +132,14 @@ class MarkerController extends BaseController
      */
     public function markerTypes($id)
     {
-        
-        $marker_types = Models\MarkerType::select('name', 'description','marker_points', 'marker_stars')->where('marker_for' , '!=' , 0)->whereStatus(1)->orderBy('name')->get();
+
+        $marker_types = Models\MarkerType::select('type_slug', 'name', 'description','marker_points', 'marker_stars')->where('marker_for' , '=' , 12)->whereStatus(1)->orderBy('name')->get();
         
         if ($marker_types->count() == 0) {
 
             return response()->json([
-                'status'    => 'fail',
-                'error'     => [
-                    'code'      => 'GEN-NOT-FOUND',
-                    'http_code' => 500,
-                    'message'   => [
-                        'Data not found'
-                    ]
-                ]
+                'status'  => 'fail',
+                'message' => 'Data not found'
             ], 500);
         }
         

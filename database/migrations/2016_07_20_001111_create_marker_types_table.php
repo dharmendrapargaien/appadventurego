@@ -15,6 +15,7 @@ class CreateMarkerTypesTable extends Migration
         Schema::create('marker_types', function (Blueprint $table) {
             
             $table->increments('id');
+            $table->string('type_slug', 100);
             $table->string('name', 100);
             $table->string('description', 200);
             $table->integer('marker_points')->default(0);
