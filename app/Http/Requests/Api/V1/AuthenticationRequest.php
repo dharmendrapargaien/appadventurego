@@ -14,7 +14,7 @@ class AuthenticationRequest extends \App\Http\Requests\Request
         'password'      => 'required',
         'grant_type'    => 'required',
         'client_id'     => 'required|exists:oauth_clients,id',
-        'client_secret' => 'required|exists:oauth_clients,secret'
+        'client_secret' => 'required|exists:oauth_clients,secret',
     ];
 
     /**
@@ -24,5 +24,22 @@ class AuthenticationRequest extends \App\Http\Requests\Request
     public function rules(){
 
         return $this->rules;
+    }
+
+    /**
+     * Sanitize input before validation.
+     *
+     * @return array
+     */
+    public function sanitize()
+    {
+        if ($this->request->has('email')) {
+
+            $input          = $this->all();
+            $input['email'] = strtolower($input['email']);
+            $this->replace($input);
+        }
+        
+        return $this->all();
     }
 }

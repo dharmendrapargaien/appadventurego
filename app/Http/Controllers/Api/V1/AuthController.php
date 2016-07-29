@@ -30,7 +30,7 @@ class AuthController extends BaseController
 	{
 		//request for oauth authorization
 		$authorizer            = Authorizer::issueAccessToken();
-		$user                  = $this->userModel->whereEmail($this->inputs['email'])->whereStatus(1)->first();
+		$user                  = $this->userModel->whereEmail($request->email)->whereStatus(1)->first();
 		
 		//add user data 
 		$authorizer['id']      = $user->id;
