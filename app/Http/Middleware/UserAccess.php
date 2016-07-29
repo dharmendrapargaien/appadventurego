@@ -17,7 +17,7 @@ class UserAccess
     {
         
         //get service for
-        $check_user_id = \Request::segment(4);
+        $check_user_id = \Request::segment(3);
 
         //if request does not have uesr id
         if(!is_numeric($check_user_id)) {

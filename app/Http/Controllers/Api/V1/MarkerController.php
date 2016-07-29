@@ -92,4 +92,35 @@ class MarkerController extends BaseController
     {
         //
     }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function markerTypes($id)
+    {
+        
+        $marker_types = Models\MarkerType::select('name', 'description','marker_points', 'marker_stars')->where('marker_for' , '!=' , 0)->whereStatus(1)->orderBy('name')->get();
+        
+        if ($marker_types->count() == 0) {
+
+            return response()->json([
+                'status'    => 'fail',
+                'error'     => [
+                    'code'      => 'GEN-NOT-FOUND',
+                    'http_code' => 500,
+                    'message'   => [
+                        'Data not found'
+                    ]
+                ]
+            ], 500);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'data'   => $marker_types
+        ], 200);
+    }
 }

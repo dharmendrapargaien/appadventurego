@@ -25,4 +25,5 @@ Route::post('access_token', function() {
 Route::group(['middleware' => ['oauth', 'userAccess']], function () {
 
 	Route::resource('{user}/markers','MarkerController');
+	Route::resource('{user}/marker-types','MarkerController@markerTypes');
 });
