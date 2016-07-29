@@ -12,6 +12,7 @@ class AuthenticationRequest extends \App\Http\Requests\Request
     public $rules = [
         'email'         => 'required|email|exists:users,email',
         'password'      => 'required',
+        'grant_type'    => 'required',
         'client_id'     => 'required|exists:oauth_clients,id',
         'client_secret' => 'required|exists:oauth_clients,secret'
     ];

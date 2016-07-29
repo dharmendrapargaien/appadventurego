@@ -94,23 +94,30 @@ class AuthController extends BaseController
 	{
 		\DB::beginTransaction();
 
-		$request_data = [
+		//create new user
+		$user = $this->userModel->create([
 			'email'    => trim($request->email),
 			'password' => bcrypt(trim($request->password)),
 			'name'     => trim($request->get('name')),
-		];
+			'status'   => 1,
+			'role_id'  => 2,
+		]);
 		
-		$user = $this->userModel->create($request_data);
-		
+		//authonticate new user
+		$authorizer            = Authorizer::issueAccessToken();
+
+		//add user data 
+		$authorizer['id']      = $user->id;
+		$authorizer['email']   = $user->email;
+		$authorizer['name']    = $user->name;
+		$authorizer['role_id'] = $user->role_id;
+
 		//$this->sendActivationCode($user);
-
 		\DB::commit();
-
-		// We have an API key. Now we need to return that.
-        $data = [];
-        return response()->json([
+		
+		return response()->json([
 			'status' => 'success',
-			'data'   => $data
+			'data'   => $authorizer
 		], 200);
 	}
 
