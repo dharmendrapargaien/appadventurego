@@ -11,6 +11,14 @@
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
+Route::macro('after', function ($callback) {
+	
+   $this->events->listen('router.filter:after:newrelic-patch', $callback);
+});
+
+Route::get('/', 'Auth\AuthController@getLogin');
+
+Route::group(['middleware' => ['auth']], function(){
+
+	Route::resource('users','UserController', ['except' => ['show','destroy']]);
 });
