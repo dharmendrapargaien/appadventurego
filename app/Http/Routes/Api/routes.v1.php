@@ -16,6 +16,8 @@ Route::post('signup', 'AuthController@signup');
 Route::post('forgot-password', 'AuthController@forgotPassword');
 // Route::post('activate', 'AuthController@activate');
 
+Route::get('marker-types','MarkerController@markerTypes');
+
 Route::post('access_token', function() {
 
 	return response()->json(Authorizer::issueAccessToken());
@@ -25,5 +27,5 @@ Route::post('access_token', function() {
 Route::group(['middleware' => ['oauth', 'userAccess']], function () {
 
 	Route::resource('{user}/markers','MarkerController');
-	Route::get('{user}/marker-types','MarkerController@markerTypes');
+	Route::get('{user}/star-points', 'UserController@getStarPoint');
 });

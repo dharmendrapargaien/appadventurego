@@ -58,14 +58,14 @@ class MarkerController extends BaseController
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(CreateMarkerRequest $request)
+    public function store(CreateMarkerRequest $request, Models\User $user)
     {
 
         \DB::beginTransaction();
 
         //create new user
          $marker_data = [
-            'user_id'        => $request->user_id,
+            'user_id'        => $user->id,
             'marker_type_id' => Models\MarkerType::select('id')->whereTypeSlug($request->marker_type)->first()['id'],
             'name'           => $request->name,
             'description'    => $request->description,
@@ -80,6 +80,8 @@ class MarkerController extends BaseController
             
             $marker_data['marker_date']    = $request->marker_date;
             $marker_data['marker_time']    = $request->marker_time;    
+
+            Models\UserPoint::whereUserId($user->id)->decrement('total_points', $marker_data["marker_points"]);
         }
         
         $marker = Models\Marker::create($marker_data);
@@ -143,7 +145,7 @@ class MarkerController extends BaseController
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function markerTypes($id)
+    public function markerTypes()
     {
 
         $marker_types = Models\MarkerType::select('type_slug', 'name', 'description','marker_points', 'marker_stars')->where('marker_for' , '!=' , 0)->whereStatus(1)->orderBy('name')->get();
