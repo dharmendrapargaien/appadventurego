@@ -9,7 +9,6 @@ class CreateMarkerRequest extends \App\Http\Requests\Request
      * @var array
      */
     public $rules = [
-        'user_id'        => 'required|exists:users,id',
         'marker_type'    => 'required|max:100|exists:marker_types,type_slug',
         'name'           => 'required|max:100',
         'description'    => 'required|max:200',
