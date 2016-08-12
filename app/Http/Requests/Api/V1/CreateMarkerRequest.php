@@ -9,13 +9,13 @@ class CreateMarkerRequest extends \App\Http\Requests\Request
      * @var array
      */
     public $rules = [
-        'marker_type'    => 'required|max:100|exists:marker_types,type_slug',
-        'name'           => 'required|max:100',
-        'description'    => 'required|max:200',
-        'lat'            => 'required',
-        'long'           => 'required',
-        'marker_points'  => 'required',
-        'marker_stars'   => 'required',
+        'marker_type'   => 'required|max:100|exists:marker_types,type_slug',
+        'name'          => 'required|max:100',
+        'description'   => 'required|max:200',
+        'lat'           => 'required',
+        'lon'           => 'required',
+        'marker_points' => 'required',
+        'marker_stars'  => 'required',
     ];
 
     /**

@@ -25,7 +25,7 @@ class CreateMarkersTable extends Migration
             $table->string('name', 100);
             $table->string('description', 200);
             $table->decimal('lat', 12 ,8);
-            $table->decimal('long', 12 ,8);
+            $table->decimal('lon', 12 ,8);
             
             $table->integer('marker_points')->default(0);
             $table->integer('marker_stars')->default(0);

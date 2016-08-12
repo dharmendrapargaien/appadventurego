@@ -28,4 +28,5 @@ Route::group(['middleware' => ['oauth', 'userAccess']], function () {
 
 	Route::resource('{user}/markers','MarkerController');
 	Route::get('{user}/star-points', 'UserController@getStarPoint');
+	Route::get('{user}/nearest-markers','MarkerController@getNearestMarker');
 });

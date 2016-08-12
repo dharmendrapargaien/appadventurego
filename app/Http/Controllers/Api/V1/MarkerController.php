@@ -8,6 +8,7 @@ use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
 use App\Http\Requests\Api\V1\CreateMarkerRequest;
+use App\Http\Requests\Api\V1\NearestMarkerRequest;
 
 use App\Models;
 
@@ -20,13 +21,13 @@ class MarkerController extends BaseController
     }
 
     /**
-     * Display a listing of the resource.
+     * Display all markers created by requested user.
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Models\User $user)
     {
-        $markers = Models\Marker::whereStatus(1)->orderBy('created_at', 'desc')->get();
+        $markers = Models\Marker::whereUserId($user->id)->whereStatus(1)->orderBy('created_at', 'desc')->get();
         
         if ($markers->count() == 0) {
 
@@ -70,7 +71,7 @@ class MarkerController extends BaseController
             'name'           => $request->name,
             'description'    => $request->description,
             'lat'            => $request->lat,
-            'long'           => $request->long,
+            'lon'            => $request->lon,
             'marker_points'  => $request->marker_points,
             'marker_stars'   => $request->marker_stars,
         ];
@@ -161,6 +162,30 @@ class MarkerController extends BaseController
         return response()->json([
             'status' => 'success',
             'data'   => $marker_types
+        ], 200);
+    }
+
+    /**
+     * list of all marker that comes within range
+     * @param  NearestMarkerRequest $request
+     * @return Json
+     */
+    public function getNearestMarker(NearestMarkerRequest $request)
+    {
+
+        $nearest_markers = Models\Marker::select('id','lat', 'lon', \DB::raw("( 3959 * acos ( cos ( radians($request->lat) ) * cos( radians( lat ) ) * cos( radians( lon ) - radians($request->lon) ) + sin ( radians($request->lat) ) * sin( radians( lat ) ) ) ) AS distance"))->having('distance','<',(0.621371 * env('MARKER_RANGE',10000)))->get();
+        
+        if ($nearest_markers->count() == 0) {
+
+            return response()->json([
+                'status'  => 'fail',
+                'message' => 'There is marker within this ' . env('MARKER_RANGE',10000) . 'm range.'
+            ], 500);
+        }
+        
+        return response()->json([
+            'status' => 'success',
+            'data'   => $nearest_markers
         ], 200);
     }
 }
