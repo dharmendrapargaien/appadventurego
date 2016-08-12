@@ -27,7 +27,7 @@ class UserController extends BaseController
         
         $points = Models\UserPoint::select('total_points', 'total_stars')->whereStatus(1)->whereUserId($user->id)->first();
         
-        if ($points->count() == 0) {
+        if (empty($points)) {
 
             return response()->json([
                 'status'  => 'fail',
