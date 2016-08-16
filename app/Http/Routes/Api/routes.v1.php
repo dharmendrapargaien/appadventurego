@@ -18,13 +18,13 @@ Route::post('forgot-password', 'AuthController@forgotPassword');
 
 Route::get('marker-types','MarkerController@markerTypes');
 
-Route::post('access_token', function() {
+Route::post('access-token', function() {
 
 	return response()->json(Authorizer::issueAccessToken());
 });
 
 
-Route::group(['middleware' => ['oauth', 'userAccess']], function () {
+Route::group(['middleware' => ['oauth', 'oauth-user', 'userAccess']], function () {
 
 	Route::resource('{user}/markers','MarkerController');
 	Route::get('{user}/star-points', 'UserController@getStarPoint');
