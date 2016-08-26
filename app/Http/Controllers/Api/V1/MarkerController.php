@@ -149,7 +149,7 @@ class MarkerController extends BaseController
     public function markerTypes()
     {
 
-        $marker_types = Models\MarkerType::select('type_slug', 'name', 'description','marker_points', 'marker_stars')->where('marker_for' , '!=' , 0)->whereStatus(1)->orderBy('name')->get();
+        $marker_types = Models\MarkerType::select('id','type_slug', 'name', 'description','marker_points', 'marker_stars')->where('marker_for' , '!=' , 0)->whereStatus(1)->orderBy('name')->get();
         
         if ($marker_types->count() == 0) {
 
