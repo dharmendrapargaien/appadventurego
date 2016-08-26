@@ -173,7 +173,7 @@ class MarkerController extends BaseController
     public function getNearestMarker(NearestMarkerRequest $request, Models\User $user)
     {
 
-        $nearest_markers = Models\Marker::select('id','lat', 'lon', \DB::raw("( 3959 * acos ( cos ( radians($request->lat) ) * cos( radians( lat ) ) * cos( radians( lon ) - radians($request->lon) ) + sin ( radians($request->lat) ) * sin( radians( lat ) ) ) ) AS distance"))->having('distance','<',(0.621371 * env('MARKER_RANGE',10000)))->where('user_id', '<>', $user->id)->get();
+        $nearest_markers = Models\Marker::select('id','marker_type_id', 'name', 'description', 'marker_points', 'marker_stars', 'marker_date', 'marker_time', 'status', 'created_at', 'updated_at', 'lat', 'lon', \DB::raw("( 3959 * acos ( cos ( radians($request->lat) ) * cos( radians( lat ) ) * cos( radians( lon ) - radians($request->lon) ) + sin ( radians($request->lat) ) * sin( radians( lat ) ) ) ) AS distance"))->having('distance','<',(0.621371 * env('MARKER_RANGE',10000)))->where('user_id', '<>', $user->id)->get();
         
         if ($nearest_markers->count() == 0) {
 
