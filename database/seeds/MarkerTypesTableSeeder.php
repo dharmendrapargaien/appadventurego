@@ -12,6 +12,14 @@ class MarkerTypesTableSeeder extends Seeder
     public function run()
     {
     	
+        \App\Models\MarkerType::firstOrCreate([
+			'type_slug'     => 'adventure',
+			'name'          => 'Adventure',
+			'description'   => '',
+			'marker_points' => 500,
+			'marker_stars'  => 1,
+		]);
+    	
     	\App\Models\MarkerType::firstOrCreate([
 			'name'          => 'Featured adventure',
 			'type_slug'     => 'featured-adventure',
@@ -21,13 +29,6 @@ class MarkerTypesTableSeeder extends Seeder
 			'marker_for'    => 0
         ]);
 
-        \App\Models\MarkerType::firstOrCreate([
-			'name'          => '­Adventure',
-			'type_slug'     => '­adventure',
-			'description'   => '',
-			'marker_points' => 500,
-			'marker_stars'  => 1,
-		]);
 
         \App\Models\MarkerType::firstOrCreate([
 			'name'          => 'Food',
