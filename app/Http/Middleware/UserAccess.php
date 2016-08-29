@@ -34,8 +34,13 @@ class UserAccess
         $user_id    = $oauthSessions->whereId($session_id)->first()->owner_id;
 
         //if access token do not match the un authorizing
-        if($user_id != $check_user_id)
-            return \Response::json(['status' => 'fail'], 401);
+        if($user_id != $check_user_id){
+            
+            return \Response::json([
+                    'status'  => 'fail', 
+                    'message' => 'You are not authorize for this.'
+                ], 401);
+        }
 
         return $next($request);
     }

@@ -9,6 +9,8 @@ use App\Http\Controllers\Controller;
 
 use App\Http\Requests\Api\V1\CreateMarkerRequest;
 use App\Http\Requests\Api\V1\NearestMarkerRequest;
+use App\Http\Requests\Api\V1\MarkerVisitRequest;
+use App\Http\Requests\Api\V1\EventMarkerFlagRequest;
 
 use App\Models;
 
@@ -82,8 +84,10 @@ class MarkerController extends BaseController
             $marker_data['marker_date']    = $request->marker_date;
             $marker_data['marker_time']    = $request->marker_time;    
 
-            Models\UserPoint::whereUserId($user->id)->decrement('total_points', $marker_data["marker_points"]);
         }
+        
+        if($request->has('marker_type') && $request->get('marker_type') == 'treasure-chest')
+            Models\UserPoint::whereUserId($user->id)->decrement('total_points', $marker_data["marker_points"]);
         
         $marker = Models\Marker::create($marker_data);
 
@@ -187,5 +191,75 @@ class MarkerController extends BaseController
             'status' => 'success',
             'data'   => $nearest_markers
         ], 200);
+    }
+
+    /**
+     * get marker visited user
+     * @param  MarkerVisitRequest $request
+     * @param  Models\User        $user
+     * @return json
+     */
+    public function markerVisit(MarkerVisitRequest $request, Models\User $user)
+    {
+        
+        $marker        = Models\Marker::find($request->marker_id);
+        
+        \DB::beginTransaction();
+        
+        if ($marker->user_id != $user->id) {
+
+            $marker_points = env('DEFAUTL_COMMON_VISIT_POINTS', 100);
+
+            Models\MarkerVisit::create([
+                'user_id'   => $user->id,
+                'marker_id' => $request->marker_id,
+            ]);
+            
+            if ($request->marker_type == "treasure-chest") {
+                
+                $marker_points = $marker->marker_points;
+                $marker->delete(); 
+            }
+            
+            Models\UserPoint::whereUserId($user->id)->increment('total_points', $marker_points);
+            
+            \DB::commit();    
+            
+            return response()->json([
+                'status' => 'success',
+            ], 200);
+        }
+        
+        return response()->json([
+            'status'  => 'fail',
+            'message' => 'You are not authorized for this.'
+        ], 500);
+    }
+
+    /**
+     * set flag for event marker
+     * @param  EventMarkerFlag $request
+     * @param  Models\User     $user
+     * @return json
+     */
+    public function eventMarkerFlag(EventMarkerFlagRequest $request, Models\User $user)
+    {
+        
+        $marker = Models\Marker::find($request->marker_id);
+        dd($marker);
+        if ($marker->user_id != $user->id) {
+            
+            $marker->status = 2;
+            $marker->save(); 
+            
+            return response()->json([
+                'status' => 'success'
+            ]);
+        }
+
+        return response()->json([
+            'status'  => 'fail',
+            'message' => 'You are not authorized for this.'
+        ], 500);
     }
 }
