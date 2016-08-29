@@ -13,6 +13,8 @@ use Authorizer, Auth;
 
 use League\Fractal;
 
+use App\Models;
+
 class AuthController extends BaseController
 {
 	
@@ -103,6 +105,12 @@ class AuthController extends BaseController
 			'role_id'  => 2,
 		]);
 		
+		Models\UserPoint::create([
+			'user_id'      => $user->id,
+			'total_points' => env('DEFAUTL_POINTS', 2000),
+			'total_stars'  => env('DEFAUTL_STARS', 0),
+		]);
+
 		//authonticate new user
 		$authorizer            = Authorizer::issueAccessToken();
 
