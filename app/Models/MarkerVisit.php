@@ -19,4 +19,22 @@ class MarkerVisit extends Model
      * @var array
      */
     protected $dates = ['created_at', 'updated_at'];
+
+    /**
+     * relation between this model and user model
+     * @return BelongsTo
+     */
+    public function user()
+    {
+        return $this->belongsTo('\App\Models\User'); 
+    }
+
+    /**
+     * relation between this model and marker model
+     * @return BelongsTo
+     */
+    public function marker()
+    {
+        return $this->belongsTo('\App\Models\Marker'); 
+    }
 }

@@ -8,6 +8,7 @@ use App\Http\Requests;
 use App\Http\Controllers\Controller;
 
 use App\Http\Requests\Api\V1\CreateMarkerRequest;
+use App\Http\Requests\Api\V1\UpdateMarkerRequest;
 use App\Http\Requests\Api\V1\NearestMarkerRequest;
 use App\Http\Requests\Api\V1\MarkerVisitRequest;
 use App\Http\Requests\Api\V1\EventMarkerFlagRequest;
@@ -29,8 +30,9 @@ class MarkerController extends BaseController
      */
     public function index(Models\User $user)
     {
-        $markers = Models\Marker::whereUserId($user->id)->whereStatus(1)->orderBy('created_at', 'desc')->get();
-        
+  
+        $markers = Models\Marker::select('*',\DB::raw('(SELECT COUNT(marker_visits.id) FROM `marker_visits` WHERE marker_visits.marker_id = markers.id) as marker_visit_count'))->whereUserId($user->id)->whereStatus(1)->orderBy('created_at', 'desc')->get();
+
         if ($markers->count() == 0) {
 
             return response()->json([
@@ -40,19 +42,9 @@ class MarkerController extends BaseController
         }
         
         return response()->json([
-            'status' => 'success',
-            'data'   => $markers
+            'status'             => 'success',
+            'data'               => $markers,
         ], 200);
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
     }
 
     /**
@@ -86,8 +78,20 @@ class MarkerController extends BaseController
 
         }
         
-        if($request->has('marker_type') && $request->get('marker_type') == 'treasure-chest')
+        if($request->has('marker_type') && $request->get('marker_type') == 'treasure-chest'){
+
+            $userPoints = Models\UserPoint::select('total_points')->whereUserId($user->id)->first()->total_points;
+            //check user points. If user don't have enough points then he can not create marker
+            if($userPoints < $marker_data["marker_points"]) {
+
+                return response()->json([
+                    'status'  => 'fail',
+                    'message' => 'You have not enough points for treasure chest marker.'
+                ], 500);
+            }
+            
             Models\UserPoint::whereUserId($user->id)->decrement('total_points', $marker_data["marker_points"]);
+        }
         
         $marker = Models\Marker::create($marker_data);
 
@@ -100,37 +104,71 @@ class MarkerController extends BaseController
     }
 
     /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(UpdateMarkerRequest $request, Models\User $user, $id)
     {
-        //
+        
+        \DB::beginTransaction();
+
+        $marker = Models\Marker::whereUserId($user->id)->findOrFail($id);
+        //create new user
+         
+        $marker->user_id        = $user->id;
+        $marker->marker_type_id = Models\MarkerType::select('id')->whereTypeSlug($request->marker_type)->first()['id'];
+        $marker->name           = $request->name;
+        $marker->description    = $request->description;
+        $marker->lat            = $request->lat;
+        $marker->lon            = $request->lon;
+        $marker->marker_stars   = $request->marker_stars;
+        
+
+        //if marker type is event then we need data and time
+        if($request->has('marker_type') && $request->get('marker_type') == 'event') {
+            
+            $marker->marker_date   = $request->marker_date;
+            $marker->marker_time   = $request->marker_time;    
+
+        }
+        
+        if($request->has('marker_type') && $request->get('marker_type') == 'treasure-chest'){
+
+            $userPoints = Models\UserPoint::select('total_points')->whereUserId($user->id)->first()->total_points;
+            //check user points. If user don't have enough points then he can not create marker
+            $marker_points = ($request->marker_points - $marker->marker_points);
+
+            if($userPoints < $marker_points) {
+
+                return response()->json([
+                    'status'  => 'fail',
+                    'message' => 'You have not enough points for treasure chest marker.'
+                ], 500);
+            }
+            
+            //balace the marker points in user poiints table
+            if($marker_points < 0) {
+
+                Models\UserPoint::whereUserId($user->id)->increment('total_points', abs($marker_points));
+            } elseif($marker_points > 0) {
+
+                Models\UserPoint::whereUserId($user->id)->decrement('total_points', $marker_points);
+            }
+        }
+
+        $marker->marker_points  = $request->marker_points;
+
+        $marker->save();
+
+        \DB::commit();
+        
+        return response()->json([
+            'status' => 'success',
+            'data'   => $marker
+        ], 200);
     }
 
     /**
@@ -139,9 +177,25 @@ class MarkerController extends BaseController
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Models\User $user, $id)
     {
-        //
+        
+        \DB::beginTransaction();
+
+        $marker = Models\Marker::whereUserId($user->id)->findOrFail($id);
+         
+        $markerType = Models\MarkerType::select('type_slug')->whereTypeSlug($marker->marker_type_id)->first()['type_slug'];
+        
+        if($markerType == 'treasure-chest')
+            Models\UserPoint::whereUserId($user->id)->increment('total_points', $marker->marker_points);
+           
+        $marker->delete();
+
+        \DB::commit();
+        
+        return response()->json([
+            'status' => 'success'
+        ], 200);
     }
 
     /**
@@ -261,5 +315,30 @@ class MarkerController extends BaseController
             'status'  => 'fail',
             'message' => 'You are not authorized for this.'
         ], 500);
+    }
+
+    /**
+     * list of all visited marker of user
+     * @param  Models\User $user 
+     * @return json            
+     */
+    public function listOfVisitedMarker(Models\User $user)
+    {
+        
+        $marker        = Models\Marker::select('id')->whereStatus(1)->whereUserId($user->id)->lists('id');
+        
+        $visitedMarker = Models\MarkerVisit::whereIn('marker_id', $marker)->with([
+            'user' => function($query){
+                $query->select('id', 'name', 'email');
+            }, 
+            'marker' => function($query){
+                $query->select('id', 'marker_type_id', 'name', 'lat', 'lon');
+            }
+        ])->get()->toArray();
+        
+        return response()->json([
+            'status' => 'success',
+            'data'   => $visitedMarker
+        ], 200);
     }
 }
